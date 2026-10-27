@@ -1,0 +1,14 @@
+node_modules
+.next
+.env*
+!.env.example
+.next-dev
+.next-demo
+.data
+
+.next-media-check
+
+# Local QA artifacts and private runtime data
+qa/
+.codex-attachments/
+.next*/

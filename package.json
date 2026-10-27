@@ -1,0 +1,19 @@
+{
+  "name": "hair-masters-salon",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --hostname 0.0.0.0",
+    "build": "next build",
+    "start": "next start --hostname 0.0.0.0",
+    "test": "node --test lib/*.test.mjs",
+    "check:ai": "node scripts/check-ai.mjs",
+    "admin:setup": "node scripts/setup-admin.mjs"
+  },
+  "dependencies": {
+    "next": "^15.5.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "lucide-react": "^0.468.0"
+  }
+}

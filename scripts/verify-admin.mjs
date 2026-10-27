@@ -1,0 +1,34 @@
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+const base=process.argv[2]||'http://localhost:3000';
+const credentials=JSON.parse(await readFile(new URL('../.data/admin-login.json',import.meta.url),'utf8'));
+let count=0;
+async function check(url,status,options={}){
+ const response=await fetch(new URL(url,base),{redirect:'manual',...options});
+ assert.equal(response.status,status,url);count++;return response;
+}
+const json=(body,cookie,origin=base)=>({headers:{Origin:origin,'Content-Type':'application/json',...(cookie?{Cookie:cookie}:{})},body:JSON.stringify(body)});
+await check('/admin',307);
+await check('/api/appointments',401);
+await check('/api/appointments',401,{method:'PATCH',...json({id:'fake',status:'confirmed'})});
+const availability=await(await check('/api/availability',200)).json();
+assert.ok(availability.appointments.every(row=>Object.keys(row).every(key=>['date','time','duration','status'].includes(key))));count++;
+await check('/.data/admin-login.json',404);
+await check('/.data/admin-auth.json',404);
+await check('/api/admin/session',403,{method:'POST',...json(credentials,null,'https://attacker.example')});
+await check('/api/admin/session',401,{method:'POST',...json({email:credentials.email,password:'intentionally incorrect test password'})});
+const login=await check('/api/admin/session',200,{method:'POST',...json(credentials)});
+const rawCookie=login.headers.get('set-cookie');assert.ok(rawCookie.includes('HttpOnly'));assert.ok(rawCookie.includes('SameSite=Strict'));count++;
+const cookie=rawCookie.split(';')[0];
+assert.ok(!(await login.text()).includes(credentials.password));count++;
+const privatePage=await check('/admin',200,{headers:{Cookie:cookie}});
+assert.ok(privatePage.headers.get('cache-control')?.includes('no-store'));count++;
+const ownerRows=await(await check('/api/appointments',200,{headers:{Cookie:cookie}})).json();
+assert.ok(ownerRows.appointments.every(row=>!('accessHash' in row)&&!('accessToken' in row)));count++;
+await check('/api/appointments',403,{method:'PATCH',...json({id:'fake',status:'confirmed'},cookie,'https://attacker.example')});
+await check('/api/appointments',404,{method:'PATCH',...json({id:'fake',status:'confirmed'},cookie)});
+await check('/api/admin/session',403,{method:'DELETE',...json({},cookie,'https://attacker.example')});
+await check('/api/admin/session',200,{method:'DELETE',...json({},cookie)});
+await check('/api/appointments',401,{headers:{Cookie:cookie}});
+await check('/admin',307,{headers:{Cookie:cookie}});
+console.log('PASS: '+count+' admin access, cookie, CSRF, privacy and logout checks. No credentials were printed.');
