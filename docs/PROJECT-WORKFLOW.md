@@ -370,7 +370,7 @@ Legacy root query links redirect server-side; service queries/categories are ret
 
 ## 19. Services-first entry and regional location directory
 
-Marketing-page Book now/Book an appointment links use `bookingEntryHref` and open `/salon?section=services`. A service card’s Book this service action then opens date/time with that treatment preselected. `bookingHref` and old explicit `?section=booking` links still refer to the booking form so existing saved links remain compatible.
+Marketing-page Book now/Book an appointment links use `bookingEntryHref` and open Discover at `/salon?section=home`. Explicit Services links continue to open the service catalog. A service card’s Book this service action then opens date/time with that treatment preselected. `bookingHref` and old explicit `?section=booking` links still refer to the booking form so existing saved links remain compatible.
 
 `src/components/brand/LocationsPage.js` and `locations.css` own the redesigned directory. `src/lib/data/locations.mjs` groups the existing public branch catalog without dropping or duplicating records. Desktop uses a city/region sidebar; mobile uses a native selector. All locations are grouped into expandable regional sections, with upcoming locations kept separate. Noida is expanded initially. Choosing a region shows only its branches; typing a search clears the region filter. Exact region-name searches avoid partial-name matches such as Punjab versus Punjabi Bagh. Address/area searches work across regions.
 

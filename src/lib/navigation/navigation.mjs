@@ -2,8 +2,8 @@ export const brandNavigation=[['about','About'],['locations','Locations'],['wome
 export const publicSections=['home','services','gallery','booking','saved',...brandNavigation.map(([id])=>id)];
 export const salonSections=['home','services','gallery','booking','saved'];
 export const bookingHref='/salon?section=booking';
-// Marketing entry points start at the catalog; selecting a service opens booking.
-export const bookingEntryHref='/salon?section=services';
+// Marketing booking entry points open the customer Discover page.
+export const bookingEntryHref='/salon?section=home';
 export function legacySectionHref(section,params={}){
  if(brandNavigation.some(([id])=>id===section))return '/'+section;
  if(!salonSections.includes(section))return null;
