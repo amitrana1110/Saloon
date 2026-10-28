@@ -10,7 +10,9 @@ export const blobClient=blob;
 export function createBlobJsonStore(pathname,initial,{client=blob,configured=assertCloudStorage,retries=8}={}){
  async function snapshot(){
   configured();
-  const result=await client.get(pathname,{access:'private',useCache:false});
+  // Compressed JSON can carry a weak transport ETag, which is invalid for
+  // If-Match writes. Read the identity representation to retain the origin ETag.
+  const result=await client.get(pathname,{access:'private',useCache:false,headers:{'Accept-Encoding':'identity'}});
   if(!result)return {data:structuredClone(initial),etag:null};
   if(!result.stream||!result.blob?.etag)throw new StorageError();
   return {data:await new Response(result.stream).json(),etag:result.blob.etag};

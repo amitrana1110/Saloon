@@ -257,7 +257,7 @@ npm run check:http -- http://localhost:3000
 npm run check:admin -- http://localhost:3000
 ```
 
-The current suite reports 76 tests covering booking validation, persistence/concurrency, authentication, media privacy, search, receipt storage and mocked chat failure handling. The count will change with future coverage. Owner verification uses `.data/admin-login.json` and performs authentication/session actions; run it in development.
+The current suite reports 77 tests covering booking validation, persistence/concurrency, authentication, media privacy, search, receipt storage and mocked chat failure handling. The count will change with future coverage. Owner verification uses `.data/admin-login.json` and performs authentication/session actions; run it in development.
 
 Manual acceptance: use customer and owner tabs; search/save a service, submit, confirm, check the updated receipt and blocked times, cancel and check restored availability. Test private/published uploads, image navigation, video playback, chat, error/empty states and direct URL refresh. Check both themes at 320, 390, 768 and 1440px. Test a physical phone keyboard separately.
 
@@ -340,3 +340,7 @@ Customer media requests still go through `/api/media/[id]`; unpublished bytes re
 New code: `src/lib/server/cloud-storage.mjs`, `cloud-media-store.mjs`, `media-validation.mjs`; new routes: POST `/api/media/upload` (owner-only upload token), POST `/api/media/complete` (owner-only validated registration). GET `/api/media?admin=1` includes the upload mode for the owner UI.
 
 References: [Vercel Blob](https://vercel.com/docs/vercel-blob), [client uploads](https://vercel.com/docs/vercel-blob/client-upload), [conditional writes and consistent reads](https://vercel.com/docs/vercel-blob/using-blob-sdk).
+
+### Conditional-write ETags and compression
+
+Cloud JSON snapshots request `Accept-Encoding: identity`. A compressed HTTP representation can return a weak `W/` transport ETag which cannot be used for an atomic `If-Match` update. Uncompressed origin reads retain the strong ETag and keep conflict protection working as the schedule/media index grows. Owner-only GET `/api/admin/storage` exposes safe presence/weakness/matching flags for diagnostics; it never returns booking data, store tokens or actual ETag values.

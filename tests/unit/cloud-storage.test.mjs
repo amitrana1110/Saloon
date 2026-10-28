@@ -61,3 +61,18 @@ test('cloud errors never silently reset or fall back to a local empty store',asy
  client.get=async()=>{throw new Error('network unavailable');};
  await assert.rejects(createBlobJsonStore('test/failure.json',[],{client,configured}).read(),/network unavailable/);
 });
+test('larger compressed booking files retain a strong ETag for conditional writes',async()=>{
+ const client=fakeBlob(),pathname='test/compressed-appointments.json';
+ const rows=Array.from({length:20},(_,i)=>({id:i,service:'Signature haircut',status:'pending',details:'x'.repeat(150)}));
+ await client.put(pathname,JSON.stringify(rows),{access:'private',allowOverwrite:false,contentType:'application/json'});
+ const originalGet=client.get.bind(client);
+ client.get=async(name,options)=>{
+  const result=await originalGet(name,options);
+  // Reproduce the production CDN: compression changes the response ETag to W/.
+  if(result&&options.headers?.['Accept-Encoding']!=='identity')result.blob.etag='W/'+result.blob.etag;
+  return result;
+ };
+ const store=createBlobJsonStore(pathname,[],{client,configured});
+ await store.update(data=>{data[0].status='confirmed';return {data,result:true};});
+ const saved=await store.read();assert.equal(saved[0].status,'confirmed');assert.equal(saved.length,20);
+});
