@@ -375,3 +375,8 @@ Marketing-page Book now/Book an appointment links use `bookingEntryHref` and ope
 `src/components/brand/LocationsPage.js` and `locations.css` own the redesigned directory. `src/lib/data/locations.mjs` groups the existing public branch catalog without dropping or duplicating records. Desktop uses a city/region sidebar; mobile uses a native selector. All locations are grouped into expandable regional sections, with upcoming locations kept separate. Noida is expanded initially. Choosing a region shows only its branches; typing a search clears the region filter. Exact region-name searches avoid partial-name matches such as Punjab versus Punjabi Bagh. Address/area searches work across regions.
 
 The directory retains directions, telephone and branch-detail links. Only Sector 104 uses this app’s services/booking flow; other branches keep their own contact/details destinations. Region names are display-normalized without changing the source identifiers.
+
+
+## Chatbot topic rules
+
+The server checks every message in `src/lib/chat/scope.mjs` before using Groq or the FAQ fallback. The assistant covers salon services, hair and beard grooming, beauty care, appointments, opening hours and branch information. Unrelated requests receive a short salon-specific redirect. Explicit programming and other unrelated requests remain blocked even when salon conversation history is supplied. Short follow-ups can use the previous customer salon question for context. The system prompt also rejects unrelated parts of mixed questions and attempts to change its role. Cosmetic advice must not become diagnosis or prescribing. Scope regression coverage is in `tests/unit/chat-scope.test.mjs` and `tests/unit/chat.test.mjs`.
