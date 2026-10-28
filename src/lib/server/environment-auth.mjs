@@ -1,6 +1,7 @@
 import {createHmac,createHash,randomBytes,scrypt as scryptCallback,timingSafeEqual} from 'node:crypto';
 import {promisify} from 'node:util';
 import {AuthError} from './auth-error.mjs';
+import {createBlobJsonStore} from './cloud-storage.mjs';
 
 const scrypt=promisify(scryptCallback);
 export const ENV_SESSION_SECONDS=60*60;
@@ -30,7 +31,7 @@ export function inspectEnvironmentAuth(environment){
  return {config:{account:identity,secret,version:createHash('sha256').update(JSON.stringify(identity)).digest('hex')},issue:null};
 }
 // Serverless deployments cannot share a local account/session file.
-export function createEnvironmentAuth(environment=process.env){
+export function createEnvironmentAuth(environment=process.env,{stateStore=environment.VERCEL||environment.BLOB_READ_WRITE_TOKEN?createBlobJsonStore('hair-masters/data/auth-security.json',{failures:[],revoked:[]}):null}={}){
  const failures=[];
  const revoked=new Map();
  const configuration=()=>inspectEnvironmentAuth(environment).config;
@@ -38,13 +39,23 @@ export function createEnvironmentAuth(environment=process.env){
  async function login(email,password,now=Date.now()){
   const config=configuration();if(!config)throw new AuthError('Owner access is not configured on this deployment.',503);
   if(typeof email!=='string'||typeof password!=='string'||email.length>254||password.length>256)throw new AuthError('Email or password is incorrect.');
-  while(failures.length&&now-failures[0]>=15*60*1000)failures.shift();
-  if(failures.length>=5)throw new AuthError('Too many failed attempts. Try again in 15 minutes.',429);
-  // Count in-flight attempts as well, so parallel requests share the local limit.
-  failures.push(now);
+  const attempt=randomBytes(16).toString('hex');
+  if(stateStore){
+   const allowed=await stateStore.update(data=>{
+    data.failures=data.failures.filter(x=>now-x.time<15*60*1000);
+    if(data.failures.length>=5)return {data,result:false};
+    data.failures.push({id:attempt,time:now});return {data,result:true};
+   });
+   if(!allowed)throw new AuthError('Too many failed attempts. Try again in 15 minutes.',429);
+  }else{
+   while(failures.length&&now-failures[0]>=15*60*1000)failures.shift();
+   if(failures.length>=5)throw new AuthError('Too many failed attempts. Try again in 15 minutes.',429);
+   failures.push(now);
+  }
   const hash=await scrypt(password,config.account.salt,64);
   if(!timingSafeEqual(hash,Buffer.from(config.account.hash,'hex'))||email.trim().toLowerCase()!==config.account.email.toLowerCase())throw new AuthError('Email or password is incorrect.');
-  failures.length=0;
+  if(stateStore)await stateStore.update(data=>{data.failures=data.failures.filter(x=>x.id!==attempt&&now-x.time<15*60*1000);return {data,result:true};});
+  else failures.length=0;
   const body=Buffer.from(JSON.stringify({email:config.account.email,version:config.version,iat:now,exp:now+ENV_SESSION_SECONDS*1000,nonce:randomBytes(16).toString('hex')})).toString('base64url');
   return {token:body+'.'+signature(body,config.secret),email:config.account.email};
  }
@@ -57,9 +68,13 @@ export function createEnvironmentAuth(environment=process.env){
   try{
    const payload=JSON.parse(Buffer.from(body,'base64url').toString());
    if(payload.email!==config.account.email||payload.version!==config.version||!Number.isFinite(payload.exp)||!Number.isFinite(payload.iat)||payload.iat>now||payload.exp<=now||payload.exp-payload.iat!==ENV_SESSION_SECONDS*1000)return null;
+   if(stateStore){const data=await stateStore.read();const hash=createHash('sha256').update(token).digest('hex');if(data.revoked.some(x=>x.hash===hash&&x.exp>now))return null;}
    return {email:config.account.email,role:'owner'};
   }catch{return null;}
  }
- async function logout(token){if(await verify(token)){const payload=JSON.parse(Buffer.from(token.split('.')[0],'base64url').toString());revoked.set(token,payload.exp);}}
+ async function logout(token){if(await verify(token)){const payload=JSON.parse(Buffer.from(token.split('.')[0],'base64url').toString());
+  if(stateStore)await stateStore.update(data=>{const hash=createHash('sha256').update(token).digest('hex');data.revoked=data.revoked.filter(x=>x.exp>Date.now()&&x.hash!==hash);data.revoked.push({hash,exp:payload.exp});return {data,result:true};});
+  revoked.set(token,payload.exp);
+ }}
  return {login,verify,logout,configurationIssue:()=>inspectEnvironmentAuth(environment).issue,async configured(){return Boolean(configuration());}};
 }

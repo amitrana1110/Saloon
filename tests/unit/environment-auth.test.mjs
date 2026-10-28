@@ -24,6 +24,27 @@ test('environment logout rejects replay on the same instance',async()=>{
  const auth=createEnvironmentAuth(settings()),{token}=await auth.login('owner@example.com',password);
  await auth.logout(token);assert.equal(await auth.verify(token),null);
 });
+
+test('shared security state enforces throttling and logout across serverless instances',async()=>{
+ let state={failures:[],revoked:[]},queue=Promise.resolve();
+ const stateStore={async read(){return structuredClone(state);},update(change){const work=queue.then(async()=>{const update=await change(structuredClone(state));state=update.data;return update.result;});queue=work.catch(()=>{});return work;}};
+ const env=settings(),first=createEnvironmentAuth(env,{stateStore}),second=createEnvironmentAuth(env,{stateStore});
+ const {token}=await first.login('owner@example.com',password);
+ assert.ok(await second.verify(token));await second.logout(token);
+ assert.equal(await first.verify(token),null);
+ assert.equal(await createEnvironmentAuth(env,{stateStore}).verify(token),null);
+ assert.ok(!JSON.stringify(state).includes(token));
+ for(let i=0;i<5;i++)await assert.rejects((i%2?first:second).login('owner@example.com','wrong'),e=>e.status===401);
+ await assert.rejects(createEnvironmentAuth(env,{stateStore}).login('owner@example.com',password),e=>e.status===429);
+});
+
+test('unavailable shared security state fails closed',async()=>{
+ const env=settings(),{token}=await createEnvironmentAuth(env).login('owner@example.com',password);
+ const stateStore={async read(){throw Error('offline');},async update(){throw Error('offline');}};
+ const auth=createEnvironmentAuth(env,{stateStore});
+ assert.equal(await auth.verify(token),null);
+ await assert.rejects(auth.login('owner@example.com',password));
+});
 test('hosting values accept surrounding whitespace, quotes and copied env prefixes',async()=>{
  const env=settings();
  const forms=[env,{ADMIN_AUTH_ACCOUNT:'  '+env.ADMIN_AUTH_ACCOUNT+'\n',ADMIN_SESSION_SECRET:' '+env.ADMIN_SESSION_SECRET+'\r\n'}, {ADMIN_AUTH_ACCOUNT:"'"+env.ADMIN_AUTH_ACCOUNT+"'",ADMIN_SESSION_SECRET:'"'+env.ADMIN_SESSION_SECRET+'"'}, {ADMIN_AUTH_ACCOUNT:JSON.stringify(env.ADMIN_AUTH_ACCOUNT),ADMIN_SESSION_SECRET:env.ADMIN_SESSION_SECRET},{ADMIN_AUTH_ACCOUNT:'ADMIN_AUTH_ACCOUNT='+env.ADMIN_AUTH_ACCOUNT,ADMIN_SESSION_SECRET:'ADMIN_SESSION_SECRET='+env.ADMIN_SESSION_SECRET}];

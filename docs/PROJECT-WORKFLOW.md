@@ -257,7 +257,7 @@ npm run check:http -- http://localhost:3000
 npm run check:admin -- http://localhost:3000
 ```
 
-The current suite reports 83 tests covering booking validation, persistence/concurrency, authentication, media privacy, search, receipt storage and mocked chat failure handling. The count will change with future coverage. Owner verification uses `.data/admin-login.json` and performs authentication/session actions; run it in development.
+The current suite reports 88 tests covering booking validation, persistence/concurrency, authentication, media privacy, search, receipt storage and mocked chat failure handling. The count will change with future coverage. Owner verification uses `.data/admin-login.json` and performs authentication/session actions; run it in development.
 
 Manual acceptance: use customer and owner tabs; search/save a service, submit, confirm, check the updated receipt and blocked times, cancel and check restored availability. Test private/published uploads, image navigation, video playback, chat, error/empty states and direct URL refresh. Check both themes at 320, 390, 768 and 1440px. Test a physical phone keyboard separately.
 
@@ -380,3 +380,8 @@ The directory retains directions, telephone and branch-detail links. Only Sector
 ## Chatbot topic rules
 
 The server checks every message in `src/lib/chat/scope.mjs` before using Groq or the FAQ fallback. The assistant covers salon services, hair and beard grooming, beauty care, appointments, opening hours and branch information. Unrelated requests receive a short salon-specific redirect. Explicit programming and other unrelated requests remain blocked even when salon conversation history is supplied. Short follow-ups can use the previous customer salon question for context. The system prompt also rejects unrelated parts of mixed questions and attempts to change its role. Cosmetic advice must not become diagnosis or prescribing. Scope regression coverage is in `tests/unit/chat-scope.test.mjs` and `tests/unit/chat.test.mjs`.
+
+
+## Production authentication security state
+
+Vercel owner authentication now keeps failed attempts and hashed revoked sessions in private Blob at `hair-masters/data/auth-security.json`. This uses conditional writes and fresh reads so logout and throttling are shared across instances. Owner verification fails closed when the security store is unavailable. Local file authentication remains available for local development. See `docs/qa/SECURITY-FUNCTIONAL-AUDIT-2026-10-28.md` for audit coverage and remaining hosting-level protections.
