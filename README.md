@@ -55,3 +55,5 @@ hair-masters/
 Requires Node.js 20.9+. Generated folders `.next`, `.next-dev` and `node_modules` are not source code. Do not edit them.
 
 Deploy on one Node.js server with persistent writable storage and HTTPS. Set `APP_ORIGIN` to the exact public origin. Independent replicas and ephemeral serverless disks are unsuitable for the current local-file stores; read the deployment section in the workflow guide first.
+
+For the deployed Vercel owner-login setup, see [Owner login on Vercel](docs/PROJECT-WORKFLOW.md#16-owner-login-on-vercel). `npm run admin:export` prepares private hosting values using your existing account; never commit the generated file. Authentication support does not replace the persistent storage required for appointments and uploads.

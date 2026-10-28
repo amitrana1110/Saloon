@@ -2,11 +2,14 @@ import {randomBytes,createHash,scrypt as scryptCallback,timingSafeEqual} from 'n
 import {promisify} from 'node:util';
 import path from 'node:path';
 import {createJsonStore} from './json-store.mjs';
+import {createEnvironmentAuth,ENV_SESSION_SECONDS} from './environment-auth.mjs';
+import {AuthError} from './auth-error.mjs';
+export {AuthError} from './auth-error.mjs';
 
 const scrypt=promisify(scryptCallback);
 export const SESSION_SECONDS=8*60*60;
 const digest=value=>createHash('sha256').update(value).digest('hex');
-export class AuthError extends Error{constructor(message,status=401){super(message);this.status=status;}}
+export const environmentAuthEnabled=()=>Boolean(process.env.VERCEL||process.env.ADMIN_AUTH_ACCOUNT||process.env.ADMIN_SESSION_SECRET);
 export function publicOrigin(request){
  if(process.env.APP_ORIGIN?.trim())return new URL(process.env.APP_ORIGIN.trim()).origin;
  const url=new URL(request.url);
@@ -29,7 +32,7 @@ export function sessionToken(request){
  return cookie.split(';').map(v=>v.trim()).find(v=>v.startsWith(cookieName(request)+'='))?.slice(cookieName(request).length+1)||'';
 }
 export function sessionCookie(request,token,clear=false){
- return cookieName(request)+'='+token+'; Path=/; HttpOnly; SameSite=Strict; Max-Age='+(clear?0:SESSION_SECONDS)+(secureRequest(request)?'; Secure':'');
+ return cookieName(request)+'='+token+'; Path=/; HttpOnly; SameSite=Strict; Max-Age='+(clear?0:environmentAuthEnabled()?ENV_SESSION_SECONDS:SESSION_SECONDS)+(secureRequest(request)?'; Secure':'');
 }
 export function assertLoginTransport(request){
  const hostname=new URL(publicOrigin(request)).hostname;
@@ -66,7 +69,9 @@ export function createAdminAuth(file=process.env.ADMIN_DATA_FILE||path.join(proc
  async function logout(token){return store.update(data=>{data.sessions=data.sessions.filter(s=>s.hash!==digest(token));return {data,result:true};});}
  return {setup,login,verify,logout,async configured(){return Boolean((await store.read()).account);}};
 }
-export const adminAuth=createAdminAuth();
+const fileAuth=createAdminAuth(),environmentAuth=createEnvironmentAuth();
+export const adminAuth=Object.fromEntries(['login','verify','logout','configured'].map(method=>[method,(...args)=>(environmentAuthEnabled()?environmentAuth:fileAuth)[method](...args)]));
+adminAuth.setup=(...args)=>{if(environmentAuthEnabled())throw new AuthError('Configure owner access through the hosting environment.',503);return fileAuth.setup(...args);};
 export async function requireOwner(request){
  const owner=await adminAuth.verify(sessionToken(request));
  if(!owner)throw new AuthError('Please sign in as the owner.',401);

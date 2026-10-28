@@ -378,3 +378,10 @@ html[data-legacy-section] .main-shell,html[data-legacy-section] .sidebar{visibil
 .service-catalog .service-grid:has(>.service-card:only-child){grid-template-columns:minmax(0,1fr);max-width:420px}
 
 .brand-services-grid+.brand-service-hero{margin-top:30px}
+
+/* Swipe categories without wrapping or causing document-level overflow. */
+@media(max-width:900px){
+ .customer-service-chips{flex-wrap:nowrap;max-width:100%;min-width:0;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x proximity;scrollbar-width:none;padding:4px 2px 10px;-webkit-overflow-scrolling:touch}
+ .customer-service-chips::-webkit-scrollbar{display:none}
+ .customer-service-chips button{flex:0 0 auto;white-space:nowrap;scroll-snap-align:start}
+}

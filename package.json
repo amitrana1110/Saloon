@@ -10,7 +10,8 @@
     "check:ai": "node scripts/check-ai.mjs",
     "admin:setup": "node scripts/setup-admin.mjs",
     "check:http": "node scripts/verify-http.mjs",
-    "check:admin": "node scripts/verify-admin.mjs"
+    "check:admin": "node scripts/verify-admin.mjs",
+    "admin:export": "node scripts/export-owner-env.mjs"
   },
   "dependencies": {
     "next": "^15.5.0",

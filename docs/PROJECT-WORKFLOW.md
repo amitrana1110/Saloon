@@ -172,7 +172,7 @@ stateDiagram-v2
 
 Completed/cancelled records are terminal in the current workflow. There is no public owner registration, password-reset screen, multi-owner permission system or staff calendar.
 
-Sessions expire after eight hours. Cookies are HttpOnly and SameSite=Strict; HTTPS adds Secure and the `__Host-` prefix. Outside localhost, owner sign-in requires HTTPS. Five failed logins trigger a 15-minute cooldown in the account store. The failure counter is shared for this single account rather than per IP.
+Local file-backed sessions expire after eight hours. Environment-backed hosting sessions expire after one hour. Cookies are HttpOnly and SameSite=Strict; HTTPS adds Secure and the `__Host-` prefix. Outside localhost, owner sign-in requires HTTPS. Five failed logins trigger a 15-minute cooldown in the account store. The failure counter is shared for this single account rather than per IP.
 
 Visible schedule tabs refresh approximately every five seconds and on focus. This is polling, not WebSocket push. Protected mutations validate the request origin. Public availability omits names, phone numbers and booking IDs. Customers access their own receipt with its bearer token.
 
@@ -208,7 +208,7 @@ Keep server authorization intact when changing any UI. Invalid input, unauthoriz
 
 ## 9. Chat workflow
 
-The browser sends the question to `/api/chat`. The server validates it, attaches salon facts/instructions and calls Groq's OpenAI-compatible chat-completions endpoint. The key remains server-side. The current implementation sends the current question, not a multi-turn conversation history.
+The browser sends the question to `/api/chat`. The server validates it, attaches salon facts/instructions and calls Groq's OpenAI-compatible chat-completions endpoint. The key remains server-side. The request includes a bounded history of up to 10 turns/8,000 characters. Only user/assistant roles are accepted; client system/tool roles are discarded. Short acknowledgements such as “OK”, “oky” and “thanks” receive a brief local reply without restarting the greeting.
 
 The assistant explains services and booking; it cannot save a request or confirm availability. Missing/rejected credentials, provider limits and outages trigger local FAQ responses with an availability notice. `npm run check:ai` sends a real small request and consumes account quota. Automated chat tests mock provider responses.
 
@@ -257,7 +257,7 @@ npm run check:http -- http://localhost:3000
 npm run check:admin -- http://localhost:3000
 ```
 
-The current suite reports 63 tests covering booking validation, persistence/concurrency, authentication, media privacy, search, receipt storage and mocked chat failure handling. The count will change with future coverage. Owner verification uses `.data/admin-login.json` and performs authentication/session actions; run it in development.
+The current suite reports 70 tests covering booking validation, persistence/concurrency, authentication, media privacy, search, receipt storage and mocked chat failure handling. The count will change with future coverage. Owner verification uses `.data/admin-login.json` and performs authentication/session actions; run it in development.
 
 Manual acceptance: use customer and owner tabs; search/save a service, submit, confirm, check the updated receipt and blocked times, cancel and check restored availability. Test private/published uploads, image navigation, video playback, chat, error/empty states and direct URL refresh. Check both themes at 320, 390, 768 and 1440px. Test a physical phone keyboard separately.
 
@@ -294,3 +294,23 @@ This requires a server, not static HTML hosting. Ephemeral local disks can lose 
 ## 15. Current scope
 
 One salon reservation lane and one owner account. No multi-tenant SaaS, staff resource assignment, payments, automatic notifications, recurring gym memberships or database. Responsive browser checks do not certify every physical device. Prices/durations are starting estimates that staff must verify. Preserve these practical limits when extending or presenting the product.
+
+## 16. Owner login on Vercel
+
+The local `.data/admin-auth.json` is deliberately excluded from Git. Vercel does not receive that account, and its functions cannot maintain the application's persistent local files. Running local setup therefore does not configure the deployed website.
+
+For an existing local account:
+
+1. Run `npm run admin:export` locally. It creates ignored `.data/vercel-auth.env` without printing secrets and refuses to overwrite an existing export.
+2. In Vercel project Settings → Environment Variables, add `ADMIN_AUTH_ACCOUNT` and `ADMIN_SESSION_SECRET` from that private file. The account value is the email/salt/password hash; no plaintext password is exported.
+3. Set `APP_ORIGIN` to the deployed HTTPS origin, for example `https://saloon-seven-henna.vercel.app`.
+4. Scope the settings to the intended environment and redeploy the updated source. Environment changes do not modify an existing deployment.
+5. Sign in using the same owner email/password as locally. Test refresh, logout and direct `/admin` access on mobile and desktop.
+
+Vercel automatically selects environment-backed authentication. The presence of either owner environment variable also selects it on other hosts. Missing or malformed values fail closed instead of silently using a different account. Local installations without these settings retain the existing file-backed account and sessions.
+
+Environment mode uses signed, HttpOnly, SameSite=Strict cookies, Secure on HTTPS, with a one-hour lifetime. Changing the account hash or signing secret invalidates old signatures. Logout clears the browser cookie and revokes it in the current warm instance. **Revocation and the login throttle are memory-local, not shared across serverless instances**: a copied cookie can remain valid elsewhere until expiry. Use platform-wide login rate limiting; use shared session storage if immediate global revocation is required. The local file-backed mode retains shared-on-disk revocation and throttling.
+
+This fixes the deployment's missing-account authentication path only. **Appointments and media still require durable storage.** Environment authentication does not make Vercel's filesystem writable or persistent. Do not store bookings or uploads in `/tmp` as a persistence workaround. For the existing no-database data stores, deploy one server with a persistent disk, or implement a suitable shared storage backend before using booking/uploads on serverless hosting.
+
+References: [Vercel runtime filesystem](https://vercel.com/docs/functions/runtimes), [environment variable deployment behavior](https://vercel.com/docs/environment-variables).
