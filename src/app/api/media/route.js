@@ -1,9 +1,10 @@
+import {cloudStorageEnabled} from '../../../lib/server/cloud-storage.mjs';
 import {mediaStore,MediaError} from '../../../lib/server/media-store.mjs';
 import {requireOwner,assertSameOrigin,publicOrigin,AuthError} from '../../../lib/server/admin-auth.mjs';
 export const runtime='nodejs';export const dynamic='force-dynamic';
 const json=(body,status=200)=>Response.json(body,{status,headers:{'Cache-Control':'no-store'}});
-const fail=e=>json({error:e instanceof MediaError||e instanceof AuthError?e.message:'Unable to save media. Please try again.'},e.status||500);
-export async function GET(request){try{const admin=new URL(request.url).searchParams.get('admin')==='1';if(admin)await requireOwner(request);const items=await mediaStore.list();return json({items:admin?items:items.filter(x=>x.status==='published').map(({filename,...item})=>item)});}catch(e){return fail(e);}}
+const fail=e=>json({error:e instanceof MediaError||e instanceof AuthError||e.status===503?e.message:'Unable to save media. Please try again.'},e.status||500);
+export async function GET(request){try{const admin=new URL(request.url).searchParams.get('admin')==='1';if(admin)await requireOwner(request);const items=await mediaStore.list();return json({...admin?{uploadMode:cloudStorageEnabled()?'blob':'local'}:{},items:admin?items:items.filter(x=>x.status==='published').map(({filename,blobPath,...item})=>item)});}catch(e){return fail(e);}}
 export async function POST(request){try{
  await requireOwner(request);
  if(request.headers.get('origin')!==publicOrigin(request))throw new AuthError('This request is not allowed.',403);

@@ -4,7 +4,7 @@ import {requireOwner,assertSameOrigin,publicAppointment,AuthError} from '../../.
 export const runtime='nodejs';export const dynamic='force-dynamic';
 const store=createAppointmentStore();
 const json=(body,status=200)=>Response.json(body,{status,headers:{'Cache-Control':'no-store'}});
-function fail(error){return json({error:error instanceof BookingError||error instanceof AuthError?error.message:'The schedule could not be saved. Please try again.'},error instanceof BookingError||error instanceof AuthError?error.status:500);}
+function fail(error){return json({error:error instanceof BookingError||error instanceof AuthError?error.message:error.status===503?'Online booking is temporarily unavailable. Please call the salon.':'The schedule could not be saved. Please try again.'},error instanceof BookingError||error instanceof AuthError?error.status:error.status===503?503:500);}
 export async function GET(request){try{await requireOwner(request);return json({appointments:(await store.list()).map(publicAppointment)});}catch(error){return fail(error);}}
 export async function POST(request){
  try{assertSameOrigin(request);}catch(error){return fail(error);}

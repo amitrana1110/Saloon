@@ -2,9 +2,13 @@ import {mkdir,readFile,writeFile,rename,open,unlink,stat} from 'node:fs/promises
 import path from 'node:path';
 import {randomUUID,randomBytes,createHash} from 'node:crypto';
 import {BookingError,prepareAppointment,updateAppointment,sortAppointments} from '../booking/appointments.mjs';
+import {cloudStorageEnabled,createBlobJsonStore} from './cloud-storage.mjs';
 
-export function createAppointmentStore(file=process.env.APPOINTMENTS_DATA_FILE||path.join(process.cwd(),'.data','appointments.json')){
+export function createAppointmentStore(file,options={}){
+ const remote=options.store||(!file&&cloudStorageEnabled()?createBlobJsonStore('hair-masters/data/appointments.json',[]):null);
+ file=file||process.env.APPOINTMENTS_DATA_FILE||path.join(process.cwd(),'.data','appointments.json');
  async function read(){
+  if(remote){const rows=await remote.read();if(!Array.isArray(rows))throw new Error('Invalid appointment store');return rows;}
   try{
    const rows=JSON.parse(await readFile(file,'utf8'));
    if(!Array.isArray(rows))throw new Error('Invalid appointment store');
@@ -12,6 +16,7 @@ export function createAppointmentStore(file=process.env.APPOINTMENTS_DATA_FILE||
   }catch(error){if(error.code==='ENOENT')return [];throw error;}
  }
  async function transaction(change){
+  if(remote)return remote.update(rows=>{const {appointments,result}=change(rows);return {data:appointments,result};});
   await mkdir(path.dirname(file),{recursive:true});
   const lockFile=`${file}.lock`;
   let lock;

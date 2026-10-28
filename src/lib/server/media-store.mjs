@@ -2,16 +2,10 @@ import path from 'node:path';
 import {randomUUID} from 'node:crypto';
 import {mkdir,writeFile,readFile,unlink} from 'node:fs/promises';
 import {createJsonStore} from './json-store.mjs';
-export class MediaError extends Error{constructor(message,status=400){super(message);this.status=status;}}
-export const categories=['Hair','Colour','Skin','Nails','Men','Bridal','Salon'];
-export function mediaType(bytes,type){
- if(type==='image/jpeg'&&bytes[0]===255&&bytes[1]===216&&bytes[2]===255)return 'jpg';
- if(type==='image/png'&&bytes.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10])))return 'png';
- if(type==='image/webp'&&bytes.toString('ascii',0,4)==='RIFF'&&bytes.toString('ascii',8,12)==='WEBP')return 'webp';
- if(type==='video/mp4'&&bytes.toString('ascii',4,8)==='ftyp')return 'mp4';
- if(type==='video/webm'&&bytes.subarray(0,4).equals(Buffer.from([26,69,223,163])))return 'webm';
- throw new MediaError('Choose a JPG, PNG, WebP, MP4 or WebM file.');
-}
+import {MediaError,categories,mediaType} from './media-validation.mjs';
+export {MediaError,categories,mediaType} from './media-validation.mjs';
+import {cloudStorageEnabled} from './cloud-storage.mjs';
+import {createCloudMediaStore} from './cloud-media-store.mjs';
 export function createMediaStore(root=process.env.MEDIA_DATA_DIR||path.join(process.cwd(),'.data','media')){
  const store=createJsonStore(path.join(root,'library.json'),{items:[]});
  const list=async()=> (await store.read()).items;
@@ -41,4 +35,4 @@ export function createMediaStore(root=process.env.MEDIA_DATA_DIR||path.join(proc
  async function remove(body){const item=await change(body);if(body.action==='delete')await unlink(path.join(root,item.filename)).catch(e=>{if(e.code!=='ENOENT')throw e;});return item;}
  return {list,add,change:remove,async bytes(item){return readFile(path.join(root,item.filename));}};
 }
-export const mediaStore=createMediaStore();
+export const mediaStore=cloudStorageEnabled()?createCloudMediaStore():createMediaStore();

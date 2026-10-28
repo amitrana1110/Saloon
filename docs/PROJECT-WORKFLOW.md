@@ -4,7 +4,7 @@ This guide describes the implemented application. All paths are relative to the 
 
 ## 1. Architecture
 
-Next.js 15 App Router serves customer pages, protected owner pages and server APIs. React 19 provides the interactive interface; Lucide supplies icons. JSON files and media files on disk provide persistence. Groq is optional, with a local FAQ fallback.
+Next.js 15 App Router serves customer pages, protected owner pages and server APIs. React 19 provides the interactive interface; Lucide supplies icons. Local deployments use JSON/media files on disk. Vercel deployments store JSON and media objects in a private Blob store. Groq is optional, with a local FAQ fallback.
 
 ```mermaid
 flowchart TD
@@ -257,7 +257,7 @@ npm run check:http -- http://localhost:3000
 npm run check:admin -- http://localhost:3000
 ```
 
-The current suite reports 72 tests covering booking validation, persistence/concurrency, authentication, media privacy, search, receipt storage and mocked chat failure handling. The count will change with future coverage. Owner verification uses `.data/admin-login.json` and performs authentication/session actions; run it in development.
+The current suite reports 76 tests covering booking validation, persistence/concurrency, authentication, media privacy, search, receipt storage and mocked chat failure handling. The count will change with future coverage. Owner verification uses `.data/admin-login.json` and performs authentication/session actions; run it in development.
 
 Manual acceptance: use customer and owner tabs; search/save a service, submit, confirm, check the updated receipt and blocked times, cancel and check restored availability. Test private/published uploads, image navigation, video playback, chat, error/empty states and direct URL refresh. Check both themes at 320, 390, 768 and 1440px. Test a physical phone keyboard separately.
 
@@ -274,7 +274,7 @@ Manual acceptance: use customer and owner tabs; search/save a service, submit, c
 7. Verify customer pages, owner access, booking confirmation, uploads and chat through the public origin.
 8. Arrange secure backups and monitor application/provider failures.
 
-This requires a server, not static HTML hosting. Ephemeral local disks can lose records/uploads. Independent replicas can see different schedules. Before scaling beyond one server, replace local stores with shared durable storage and appropriate write coordination. A persistent disk is the current no-database deployment option.
+The app requires server-side APIs, not static HTML hosting. Local-file mode requires one server with a persistent disk. Vercel mode uses shared private Blob storage and conditional ETag updates across instances; do not use its ephemeral disk for records or uploads.
 
 ## 14. Troubleshooting
 
@@ -311,10 +311,32 @@ Vercel automatically selects environment-backed authentication. The presence of 
 
 Environment mode uses signed, HttpOnly, SameSite=Strict cookies, Secure on HTTPS, with a one-hour lifetime. Changing the account hash or signing secret invalidates old signatures. Logout clears the browser cookie and revokes it in the current warm instance. **Revocation and the login throttle are memory-local, not shared across serverless instances**: a copied cookie can remain valid elsewhere until expiry. Use platform-wide login rate limiting; use shared session storage if immediate global revocation is required. The local file-backed mode retains shared-on-disk revocation and throttling.
 
-This fixes the deployment's missing-account authentication path only. **Appointments and media still require durable storage.** Environment authentication does not make Vercel's filesystem writable or persistent. Do not store bookings or uploads in `/tmp` as a persistence workaround. For the existing no-database data stores, deploy one server with a persistent disk, or implement a suitable shared storage backend before using booking/uploads on serverless hosting.
+Owner authentication and data storage are separate. After setting up authentication, connect the Private Blob store described below. The application now supports that durable storage backend without a database. Do not use `/tmp` for persistent records or uploads.
 
 References: [Vercel runtime filesystem](https://vercel.com/docs/functions/runtimes), [environment variable deployment behavior](https://vercel.com/docs/environment-variables).
 
 ### Deployment configuration diagnostics
 
 The owner login page and `/api/admin/session` report a safe configuration issue when setup fails: `account_missing`, `account_format`, `account_fields`, `secret_missing` or `secret_format`. They never return the configured value, email, hash or signing secret. Missing values usually require checking the project/environment scope and redeploying; malformed values require copying the complete value from the private export. Surrounding whitespace, ordinary quotes and copied `NAME=` prefixes are normalized before validation. Invalid or incomplete account/hash values still fail closed.
+
+## 17. Production bookings and media on Vercel — no database
+
+Create/connect a **Private** Vercel Blob store to the project and its Production environment. Vercel normally adds `BLOB_READ_WRITE_TOKEN`. Keep this token server-only; never use a `NEXT_PUBLIC_` name. Redeploy after the connection. Blob usage is subject to the limits/billing of the connected account; do not assume unlimited free storage.
+
+Storage selection is automatic: Vercel or a configured Blob token selects cloud mode; local development without that token keeps the existing filesystem behavior. Missing cloud credentials fail with an availability error and never fall back to temporary/empty local data. Optional local file-path overrides apply to local-file mode.
+
+Cloud objects are private:
+
+- `hair-masters/data/appointments.json`: requests, owner status and receipt token hashes.
+- `hair-masters/data/media.json`: ordered media metadata and draft/publication state.
+- `hair-masters/uploads/<uuid>.<extension>`: uploaded bytes.
+
+The cloud JSON adapter reads origin storage with `useCache: false`. Updates use ETag `ifMatch` and retry conflicts. Initial creation forbids overwrites, so concurrent first writes also retry safely. Confirmations revalidate the entire treatment interval against the latest committed schedule. This prevents lost updates and overlapping confirmations across instances. JSON object storage suits this app's small schedule; large traffic/data volumes need an appropriately scalable data model.
+
+Uploads use authenticated, same-origin, short-lived tokens for one generated pathname. The browser sends bytes directly to Blob, bypassing Vercel Functions' ordinary upload-body limit. The owner then finalizes the media through a small JSON request. The server checks size, type signatures, caption and category before registering a private draft. Completed registration is idempotent for that pathname. Photos remain limited to 8 MB and videos to 30 MB. Upload progress and finalization feedback appear in the owner form.
+
+Customer media requests still go through `/api/media/[id]`; unpublished bytes require an owner session. Published streams and video ranges are proxied without exposing the storage token. A failed/abandoned direct upload may leave an unregistered private object; it never appears in the public Lookbook. Review orphaned objects in the storage dashboard when maintaining storage. Existing local `.data` records/uploads are not automatically copied into production.
+
+New code: `src/lib/server/cloud-storage.mjs`, `cloud-media-store.mjs`, `media-validation.mjs`; new routes: POST `/api/media/upload` (owner-only upload token), POST `/api/media/complete` (owner-only validated registration). GET `/api/media?admin=1` includes the upload mode for the owner UI.
+
+References: [Vercel Blob](https://vercel.com/docs/vercel-blob), [client uploads](https://vercel.com/docs/vercel-blob/client-upload), [conditional writes and consistent reads](https://vercel.com/docs/vercel-blob/using-blob-sdk).

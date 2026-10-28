@@ -29,6 +29,10 @@ test('media API denies customer writes and hides draft lists and bytes',async()=
  assert.equal((await (await api.GET(new Request(base+'/api/media'))).json()).items.length,0);
  const params={params:Promise.resolve({id:item.id})};assert.equal((await bytesApi.GET(new Request(base+item.url),params)).status,404);
  const cookie=sessionCookie(new Request(base),login.token).split(';')[0];
+ const direct=await import('../../src/app/api/media/upload/route.js'),complete=await import('../../src/app/api/media/complete/route.js');
+ assert.equal((await direct.POST(request('POST',{}))).status,401);assert.equal((await complete.POST(request('POST',{}))).status,401);
+ const directCross=new Request(base+'/api/media/upload',{method:'POST',headers:{cookie,origin:'https://bad.example','content-type':'application/json'},body:'{}'});
+ assert.equal((await direct.POST(directCross)).status,403);
  assert.equal((await bytesApi.GET(new Request(base+item.url,{headers:{cookie}}),params)).status,200);
  const patch={id:item.id,action:'update',caption:'Published test',category:'Hair',status:'published'};
  const cross=new Request(base+'/api/media',{method:'PATCH',headers:{cookie,origin:'https://bad.example','content-type':'application/json'},body:JSON.stringify(patch)});assert.equal((await api.PATCH(cross)).status,403);
