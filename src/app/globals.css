@@ -385,3 +385,8 @@ html[data-legacy-section] .main-shell,html[data-legacy-section] .sidebar{visibil
  .customer-service-chips::-webkit-scrollbar{display:none}
  .customer-service-chips button{flex:0 0 auto;white-space:nowrap;scroll-snap-align:start}
 }
+
+/* Links from the booking workspace back to the separate marketing website. */
+.salon-website-link{display:flex;align-items:center;justify-content:space-between;color:var(--brown);padding:18px 14px;margin-top:18px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);font-size:12px}
+.salon-site-shortcut{display:inline-flex;align-items:center;gap:8px;color:var(--muted);font-size:12px;white-space:nowrap;min-height:44px}
+@media(max-width:760px){.salon-site-shortcut{font-size:11px}}

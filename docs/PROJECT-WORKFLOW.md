@@ -129,7 +129,7 @@ Use absolute paths for persistent-store overrides. Never put secret values into 
 
 The homepage exposes search, categories and booking near the beginning. Customers can search services, browse categories, inspect estimates/durations, save favourites and book directly from a service card. Typed service search clears a stale category; location search clears a stale region filter.
 
-Public sections use direct URLs such as `/?section=services`. Supported IDs: `home`, `services`, `gallery`, `booking`, `saved`, `about`, `locations`, `women`, `men`, `franchise`, `news`, `blogs`, `contact`. Server entry points handle direct links and refresh. Preserve this behavior when changing navigation.
+Marketing pages use `/`, `/about`, `/locations`, `/women`, `/men`, `/franchise`, `/news`, `/blogs` and `/contact`. The booking workspace uses `/salon` with `section=home`, `services`, `gallery`, `booking` or `saved`. Old `/?section=...` links redirect to their new address, preserving service searches/categories. Server entry points handle direct links and refresh.
 
 ### Appointment request
 
@@ -257,7 +257,7 @@ npm run check:http -- http://localhost:3000
 npm run check:admin -- http://localhost:3000
 ```
 
-The current suite reports 77 tests covering booking validation, persistence/concurrency, authentication, media privacy, search, receipt storage and mocked chat failure handling. The count will change with future coverage. Owner verification uses `.data/admin-login.json` and performs authentication/session actions; run it in development.
+The current suite reports 79 tests covering booking validation, persistence/concurrency, authentication, media privacy, search, receipt storage and mocked chat failure handling. The count will change with future coverage. Owner verification uses `.data/admin-login.json` and performs authentication/session actions; run it in development.
 
 Manual acceptance: use customer and owner tabs; search/save a service, submit, confirm, check the updated receipt and blocked times, cancel and check restored availability. Test private/published uploads, image navigation, video playback, chat, error/empty states and direct URL refresh. Check both themes at 320, 390, 768 and 1440px. Test a physical phone keyboard separately.
 
@@ -344,3 +344,26 @@ References: [Vercel Blob](https://vercel.com/docs/vercel-blob), [client uploads]
 ### Conditional-write ETags and compression
 
 Cloud JSON snapshots request `Accept-Encoding: identity`. A compressed HTTP representation can return a weak `W/` transport ETag which cannot be used for an atomic `If-Match` update. Uncompressed origin reads retain the strong ETag and keep conflict protection working as the schedule/media index grows. Owner-only GET `/api/admin/storage` exposes safe presence/weakness/matching flags for diagnostics; it never returns booking data, store tokens or actual ETag values.
+
+## 18. Separate landing website and booking workspace
+
+The public brand website is now the main homepage. Its minimal header/footer link to all eight informational pages, and its booking links open the existing application on the same domain. Customer data, owner access, storage objects and API endpoints keep their existing locations.
+
+| URL | Purpose |
+| --- | --- |
+| `/` | Minimal marketing homepage |
+| `/about`, `/locations` | Brand story and searchable branch directory |
+| `/women`, `/men` | Service information and booking links |
+| `/franchise`, `/news`, `/blogs`, `/contact` | Partnerships, editorial content and enquiries |
+| `/salon` | Existing customer application home |
+| `/salon?section=services` | Searchable service catalog and prices |
+| `/salon?section=booking` | Existing three-step appointment request |
+| `/salon?section=gallery` | Customer Lookbook |
+| `/salon?section=saved` | Browser favourites |
+| `/admin`, `/admin/login` | Protected owner workspace and login |
+
+`src/components/landing/LandingSite.js` owns the marketing shell/homepage and `landing.css` owns its scoped styles. `src/components/brand/BrandPages.js` supplies the existing eight informational pages inside that shell. Their booking actions are real links, so they also work before hydration and support opening in a new tab. `src/app/[section]/page.js` explicitly permits only the eight brand routes and rejects unknown destinations.
+
+`src/app/salon/page.js` renders the existing booking app. Its old Explore/More brand menus are replaced by simple return links to the website. Marketing pages do not mount appointment polling or the full booking interface. Both experiences share theme/favourite storage on the same origin. Bookings still require owner confirmation and all storage/authentication checks remain server-side.
+
+Legacy root query links redirect server-side; service queries/categories are retained. Legacy hash links are routed from the marketing shell to their new destination. Informational links under `/salon?section=...` and authenticated `/admin?section=...` lead to the corresponding brand page. Normal salon navigation remains within `/salon`; refresh and browser history retain the chosen section.

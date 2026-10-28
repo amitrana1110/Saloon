@@ -13,7 +13,7 @@ npm run admin:setup
 npm run dev
 ```
 
-Customer site: http://localhost:3000. Owner access: http://localhost:3000/admin/login.
+Landing website: http://localhost:3000. Booking app: http://localhost:3000/salon. Owner access: http://localhost:3000/admin/login.
 
 Owner setup leaves an existing account unchanged. Newly generated credentials are delivered privately in `.data/admin-login.json`; do not commit or share that file.
 
@@ -57,3 +57,5 @@ Requires Node.js 20.9+. Generated folders `.next`, `.next-dev` and `node_modules
 Deployment options: one Node.js server with a persistent disk, or Vercel with a connected **Private Blob** store. Vercel automatically uses cloud JSON/media storage through `BLOB_READ_WRITE_TOKEN`; it never writes bookings to its temporary disk. Set `APP_ORIGIN` to the exact public origin. Read the deployment section in the workflow guide first.
 
 For the deployed Vercel owner-login setup, see [Owner login on Vercel](docs/PROJECT-WORKFLOW.md#16-owner-login-on-vercel). `npm run admin:export` prepares private hosting values using your existing account; never commit the generated file. Also connect a Private Blob store for durable appointments and uploads.
+
+The main website contains About, Locations, Women’s services, Men’s services, Franchise, HM News, Blogs and Contact at dedicated URLs. Booking links lead to `/salon?section=booking`. The booking workspace keeps services, Lookbook, favourites and appointments; old `/?section=...` links redirect to the appropriate new address.
