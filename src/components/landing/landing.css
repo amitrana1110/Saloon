@@ -17,16 +17,22 @@
 @media(max-width:380px){.landing-header-inner{padding-inline:14px;gap:8px}.landing-header .landing-brand{gap:8px}.landing-header .landing-brand strong{font-size:8px;letter-spacing:1px}.landing-header .landing-brand small{font-size:6px;letter-spacing:1.6px}.landing-header .landing-brand>span{font-size:31px}.landing-header-actions{gap:1px}.landing-header .landing-book{padding-inline:10px;font-size:10px}.landing-header .landing-book svg{display:none}.landing-theme{width:32px}.landing-mobile-menu>summary{min-width:38px}.landing-mobile-menu>nav{grid-template-columns:1fr;padding:14px 22px 22px}.landing-mobile-menu nav>a{min-height:43px}.landing-site .landing-main{padding-inline:18px}.landing-hero h1{font-size:58px}.landing-hero-actions{gap:16px}.landing-hero-actions .landing-book{padding-inline:14px}.landing-hero-actions .landing-text-link{font-size:11px}.landing-hero-image figcaption{font-size:8px}.landing-journal-story{grid-template-columns:90px minmax(0,1fr);gap:16px}.landing-journal-story h3{font-size:18px}}
 @media(prefers-reduced-motion:reduce){.landing-site *{scroll-behavior:auto!important}.landing-service img{transition:none}}
 /* Keep the compact header within narrow phone screens, including scrollbars. */
+.landing-header .landing-brand strong{font-size:12px}
+.landing-header .landing-brand small{font-size:9px}
+.landing-desktop-nav a{font-size:14px}
+.landing-header .landing-book{font-size:14px}
+@media(min-width:1101px) and (max-width:1200px){.landing-desktop-nav a{font-size:13px}.landing-header-inner{gap:14px}.landing-desktop-nav{gap:10px}}
+.landing-mobile-menu nav>a{font-size:16px}
 .landing-mobile-menu:not([open])>nav{display:none}
 @media(max-width:760px){
  .landing-header-inner{padding-inline:16px;gap:10px}
  .landing-header .landing-brand{gap:8px}
  .landing-header .landing-brand>span{font-size:34px}
- .landing-header .landing-brand strong{font-size:9px;letter-spacing:1px}
+ .landing-header .landing-brand strong{font-size:10px;letter-spacing:1px}
  .landing-header .landing-brand small{display:none}
- .landing-header .landing-book{min-height:44px;font-size:12px;padding-inline:12px}
+ .landing-header .landing-book{min-height:44px;font-size:14px;padding-inline:12px}
  .landing-header .landing-book svg{display:none}
  .landing-theme{width:32px}
  .landing-mobile-menu>summary{min-width:38px}
 }
-@media(max-width:380px){.landing-header-inner{padding-inline:14px;gap:8px}.landing-header .landing-brand strong{display:none}.landing-header .landing-brand>span{font-size:36px}.landing-header .landing-book{font-size:12px;padding-inline:12px}}
+@media(max-width:380px){.landing-header-inner{padding-inline:14px;gap:8px}.landing-header .landing-brand strong{display:none}.landing-header .landing-brand>span{font-size:36px}.landing-header .landing-book{font-size:14px;padding-inline:12px}}
