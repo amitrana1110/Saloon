@@ -6,9 +6,11 @@
     "dev": "next dev --hostname 0.0.0.0",
     "build": "next build",
     "start": "next start --hostname 0.0.0.0",
-    "test": "node --test lib/*.test.mjs",
+    "test": "node --test tests/unit/*.test.mjs",
     "check:ai": "node scripts/check-ai.mjs",
-    "admin:setup": "node scripts/setup-admin.mjs"
+    "admin:setup": "node scripts/setup-admin.mjs",
+    "check:http": "node scripts/verify-http.mjs",
+    "check:admin": "node scripts/verify-admin.mjs"
   },
   "dependencies": {
     "next": "^15.5.0",

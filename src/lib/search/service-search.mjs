@@ -1,0 +1,4 @@
+import {normalizeSearch} from './search.mjs';
+const terms={cut:'women ladies female hair cut haircut trim layers blow dry styling',color:'color colour highlights balayage dye colouring',spa:'hair spa scalp conditioning treatment',facial:'face facial skin skincare cleanup clean up',nails:'nail nails manicure pedicure mani pedi polish',men:'men mens male man barber beard trim grooming hair cut',keratin:'keratin smoothing smoothening frizz straightening consultation',bridal:'bride bridal wedding makeup make up consultation'};
+const normalize=normalizeSearch;
+export function searchServices(services,query='',category='All'){const words=normalize(query).split(' ').filter(word=>word&&!['price','prices','service','services','book','booking','for','a','an'].includes(word));return services.filter(s=>(normalize(query)||category==='All'||s.category===category)&&words.every(word=>normalize([s.name,s.category,s.description,terms[s.id]||''].join(' ')).includes(word)));}

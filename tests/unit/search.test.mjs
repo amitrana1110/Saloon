@@ -1,0 +1,3 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {matchesSearch} from '../../src/lib/search/search.mjs';
+test('search ignores case, extra spaces, punctuation and word order',()=>{assert.ok(matchesSearch('Hazipur, Sector 104, Noida','  NOIDA   104 '));assert.ok(matchesSearch('Hair Masters','masters hair'));assert.ok(matchesSearch('Men’s styling','mens'));assert.ok(matchesSearch('José','jose'));assert.equal(matchesSearch('Noida','Mumbai'),false);assert.ok(matchesSearch('Hair','   '));});
+test('phone fragments and multi-word service queries match',()=>{assert.ok(matchesSearch('Customer +91 90456 73033 Haircut','90456 73033'));assert.ok(matchesSearch('Restorative hair spa','hair spa'));});

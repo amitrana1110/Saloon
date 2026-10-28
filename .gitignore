@@ -1,14 +1,13 @@
-node_modules
-.next
+# Dependencies
+node_modules/
+
+# Generated framework output
+.next*/
+
+# Secrets and private runtime data
 .env*
 !.env.example
-.next-dev
-.next-demo
-.data
+.data/
 
-.next-media-check
-
-# Local QA artifacts and private runtime data
-qa/
-.codex-attachments/
-.next*/
+# Temporary test artifacts
+/qa/

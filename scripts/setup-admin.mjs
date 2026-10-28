@@ -1,7 +1,7 @@
 import {writeFile,mkdir} from 'node:fs/promises';
 import {randomBytes} from 'node:crypto';
 import path from 'node:path';
-import {createAdminAuth} from '../lib/admin-auth.mjs';
+import {createAdminAuth} from '../src/lib/server/admin-auth.mjs';
 import nextEnv from '@next/env';
 nextEnv.loadEnvConfig(process.cwd());
 const auth=createAdminAuth();
