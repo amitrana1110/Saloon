@@ -257,7 +257,7 @@ npm run check:http -- http://localhost:3000
 npm run check:admin -- http://localhost:3000
 ```
 
-The current suite reports 79 tests covering booking validation, persistence/concurrency, authentication, media privacy, search, receipt storage and mocked chat failure handling. The count will change with future coverage. Owner verification uses `.data/admin-login.json` and performs authentication/session actions; run it in development.
+The current suite reports 83 tests covering booking validation, persistence/concurrency, authentication, media privacy, search, receipt storage and mocked chat failure handling. The count will change with future coverage. Owner verification uses `.data/admin-login.json` and performs authentication/session actions; run it in development.
 
 Manual acceptance: use customer and owner tabs; search/save a service, submit, confirm, check the updated receipt and blocked times, cancel and check restored availability. Test private/published uploads, image navigation, video playback, chat, error/empty states and direct URL refresh. Check both themes at 320, 390, 768 and 1440px. Test a physical phone keyboard separately.
 
@@ -367,3 +367,11 @@ The public brand website is now the main homepage. Its minimal header/footer lin
 `src/app/salon/page.js` renders the existing booking app. Its old Explore/More brand menus are replaced by simple return links to the website. Marketing pages do not mount appointment polling or the full booking interface. Both experiences share theme/favourite storage on the same origin. Bookings still require owner confirmation and all storage/authentication checks remain server-side.
 
 Legacy root query links redirect server-side; service queries/categories are retained. Legacy hash links are routed from the marketing shell to their new destination. Informational links under `/salon?section=...` and authenticated `/admin?section=...` lead to the corresponding brand page. Normal salon navigation remains within `/salon`; refresh and browser history retain the chosen section.
+
+## 19. Services-first entry and regional location directory
+
+Marketing-page Book now/Book an appointment links use `bookingEntryHref` and open `/salon?section=services`. A service card’s Book this service action then opens date/time with that treatment preselected. `bookingHref` and old explicit `?section=booking` links still refer to the booking form so existing saved links remain compatible.
+
+`src/components/brand/LocationsPage.js` and `locations.css` own the redesigned directory. `src/lib/data/locations.mjs` groups the existing public branch catalog without dropping or duplicating records. Desktop uses a city/region sidebar; mobile uses a native selector. All locations are grouped into expandable regional sections, with upcoming locations kept separate. Noida is expanded initially. Choosing a region shows only its branches; typing a search clears the region filter. Exact region-name searches avoid partial-name matches such as Punjab versus Punjabi Bagh. Address/area searches work across regions.
+
+The directory retains directions, telephone and branch-detail links. Only Sector 104 uses this app’s services/booking flow; other branches keep their own contact/details destinations. Region names are display-normalized without changing the source identifiers.

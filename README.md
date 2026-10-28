@@ -58,4 +58,4 @@ Deployment options: one Node.js server with a persistent disk, or Vercel with a 
 
 For the deployed Vercel owner-login setup, see [Owner login on Vercel](docs/PROJECT-WORKFLOW.md#16-owner-login-on-vercel). `npm run admin:export` prepares private hosting values using your existing account; never commit the generated file. Also connect a Private Blob store for durable appointments and uploads.
 
-The main website contains About, Locations, Women’s services, Men’s services, Franchise, HM News, Blogs and Contact at dedicated URLs. Booking links lead to `/salon?section=booking`. The booking workspace keeps services, Lookbook, favourites and appointments; old `/?section=...` links redirect to the appropriate new address.
+The main website contains About, Locations, Women’s services, Men’s services, Franchise, HM News, Blogs and Contact at dedicated URLs. Booking links first open `/salon?section=services`; selecting a treatment continues to booking. The booking workspace keeps services, Lookbook, favourites and appointments; old `/?section=...` links redirect to the appropriate new address.
