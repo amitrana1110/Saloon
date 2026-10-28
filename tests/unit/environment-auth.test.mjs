@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {scryptSync} from 'node:crypto';
-import {createEnvironmentAuth,ENV_SESSION_SECONDS} from '../../src/lib/server/environment-auth.mjs';
+import {createEnvironmentAuth,ENV_SESSION_SECONDS,inspectEnvironmentAuth} from '../../src/lib/server/environment-auth.mjs';
 const password='test-only-owner-password-123',salt='a'.repeat(32);
 const settings=()=>({ADMIN_AUTH_ACCOUNT:JSON.stringify({email:'owner@example.com',salt,hash:scryptSync(password,salt,64).toString('hex')}),ADMIN_SESSION_SECRET:'b'.repeat(43)});
 test('environment owner login survives a new instance without filesystem writes',async()=>{
@@ -23,4 +23,16 @@ test('missing or partial environment credentials fail closed and local throttlin
 test('environment logout rejects replay on the same instance',async()=>{
  const auth=createEnvironmentAuth(settings()),{token}=await auth.login('owner@example.com',password);
  await auth.logout(token);assert.equal(await auth.verify(token),null);
+});
+test('hosting values accept surrounding whitespace, quotes and copied env prefixes',async()=>{
+ const env=settings();
+ const forms=[env,{ADMIN_AUTH_ACCOUNT:'  '+env.ADMIN_AUTH_ACCOUNT+'\n',ADMIN_SESSION_SECRET:' '+env.ADMIN_SESSION_SECRET+'\r\n'}, {ADMIN_AUTH_ACCOUNT:"'"+env.ADMIN_AUTH_ACCOUNT+"'",ADMIN_SESSION_SECRET:'"'+env.ADMIN_SESSION_SECRET+'"'}, {ADMIN_AUTH_ACCOUNT:JSON.stringify(env.ADMIN_AUTH_ACCOUNT),ADMIN_SESSION_SECRET:env.ADMIN_SESSION_SECRET},{ADMIN_AUTH_ACCOUNT:'ADMIN_AUTH_ACCOUNT='+env.ADMIN_AUTH_ACCOUNT,ADMIN_SESSION_SECRET:'ADMIN_SESSION_SECRET='+env.ADMIN_SESSION_SECRET}];
+ const {token}=await createEnvironmentAuth(env).login('owner@example.com',password,1000);
+ for(const form of forms){const auth=createEnvironmentAuth(form);assert.equal(await auth.configured(),true);assert.equal(auth.configurationIssue(),null);assert.ok(await auth.verify(token,2000));}
+});
+test('configuration diagnostics identify the field without disclosing its content',()=>{
+ const env=settings();
+ for(const [settings,code] of [[{},'account_missing'],[{...env,ADMIN_AUTH_ACCOUNT:'email-only@example.com'},'account_format'],[{...env,ADMIN_AUTH_ACCOUNT:'{}'},'account_fields'],[{...env,ADMIN_SESSION_SECRET:''},'secret_missing'],[{...env,ADMIN_SESSION_SECRET:'wrong-secret'},'secret_format']]){
+  const result=inspectEnvironmentAuth(settings);assert.equal(result.config,null);assert.equal(result.issue.code,code);assert.ok(!JSON.stringify(result.issue).includes('wrong-secret'));assert.ok(!JSON.stringify(result.issue).includes(env.ADMIN_AUTH_ACCOUNT));assert.ok(!JSON.stringify(result.issue).includes(env.ADMIN_SESSION_SECRET));
+ }
 });

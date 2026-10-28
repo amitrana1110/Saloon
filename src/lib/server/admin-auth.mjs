@@ -70,6 +70,7 @@ export function createAdminAuth(file=process.env.ADMIN_DATA_FILE||path.join(proc
  return {setup,login,verify,logout,async configured(){return Boolean((await store.read()).account);}};
 }
 const fileAuth=createAdminAuth(),environmentAuth=createEnvironmentAuth();
+export const ownerConfigurationIssue=()=>environmentAuthEnabled()?environmentAuth.configurationIssue():null;
 export const adminAuth=Object.fromEntries(['login','verify','logout','configured'].map(method=>[method,(...args)=>(environmentAuthEnabled()?environmentAuth:fileAuth)[method](...args)]));
 adminAuth.setup=(...args)=>{if(environmentAuthEnabled())throw new AuthError('Configure owner access through the hosting environment.',503);return fileAuth.setup(...args);};
 export async function requireOwner(request){

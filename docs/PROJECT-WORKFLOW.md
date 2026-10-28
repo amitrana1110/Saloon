@@ -257,7 +257,7 @@ npm run check:http -- http://localhost:3000
 npm run check:admin -- http://localhost:3000
 ```
 
-The current suite reports 70 tests covering booking validation, persistence/concurrency, authentication, media privacy, search, receipt storage and mocked chat failure handling. The count will change with future coverage. Owner verification uses `.data/admin-login.json` and performs authentication/session actions; run it in development.
+The current suite reports 72 tests covering booking validation, persistence/concurrency, authentication, media privacy, search, receipt storage and mocked chat failure handling. The count will change with future coverage. Owner verification uses `.data/admin-login.json` and performs authentication/session actions; run it in development.
 
 Manual acceptance: use customer and owner tabs; search/save a service, submit, confirm, check the updated receipt and blocked times, cancel and check restored availability. Test private/published uploads, image navigation, video playback, chat, error/empty states and direct URL refresh. Check both themes at 320, 390, 768 and 1440px. Test a physical phone keyboard separately.
 
@@ -314,3 +314,7 @@ Environment mode uses signed, HttpOnly, SameSite=Strict cookies, Secure on HTTPS
 This fixes the deployment's missing-account authentication path only. **Appointments and media still require durable storage.** Environment authentication does not make Vercel's filesystem writable or persistent. Do not store bookings or uploads in `/tmp` as a persistence workaround. For the existing no-database data stores, deploy one server with a persistent disk, or implement a suitable shared storage backend before using booking/uploads on serverless hosting.
 
 References: [Vercel runtime filesystem](https://vercel.com/docs/functions/runtimes), [environment variable deployment behavior](https://vercel.com/docs/environment-variables).
+
+### Deployment configuration diagnostics
+
+The owner login page and `/api/admin/session` report a safe configuration issue when setup fails: `account_missing`, `account_format`, `account_fields`, `secret_missing` or `secret_format`. They never return the configured value, email, hash or signing secret. Missing values usually require checking the project/environment scope and redeploying; malformed values require copying the complete value from the private export. Surrounding whitespace, ordinary quotes and copied `NAME=` prefixes are normalized before validation. Invalid or incomplete account/hash values still fail closed.
